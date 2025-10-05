@@ -1,19 +1,20 @@
-# --- Etapa de build (igual que antes)
+# --- Build (Maven + Java 17)
 FROM maven:3.9.6-eclipse-temurin-17 AS build
 WORKDIR /app
 COPY pom.xml .
 COPY src ./src
-RUN mvn -DskipTests package
+# Construye y deja el jar con un nombre predecible
+RUN mvn -DskipTests package && \
+    ls -l /app/target && \
+    cp /app/target/*.jar /app/app.jar
 
-# --- Runtime
+# --- Runtime (JRE 17)
 FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
-
-# Copiamos el/los JAR(es) sin renombrar
-COPY --from=build /app/target/*.jar /app/
+# Copiamos el jar con nombre fijo
+COPY --from=build /app/app.jar /app/app.jar
 
 ENV PORT=8080
 EXPOSE 8080
 
-# Ejecuta cualquiera que haya: *.jar
-ENTRYPOINT ["sh","-c","exec java -jar /app/*.jar"]
+ENTRYPOINT ["java","-jar","/app/app.jar"]
